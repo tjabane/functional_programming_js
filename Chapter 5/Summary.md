@@ -216,3 +216,179 @@ class Nothing extends Maybe {
 }
 
 ```
+Maybe is used for potentaily null values
+
+```javascript
+const safeFindObject = R.curry(function(db, id) {
+return Maybe.fromNullable(find(db, id));
+});
+```
+
+OOP code
+```javascript
+function getCountry(student){
+    const skool = student.school();
+    if(skool !== null)
+    {
+        let addr = school.address();
+        if(addr !== null) {
+            return addr.country();
+        }
+    }
+    return 'Country does not exist!';
+}
+```
+functional solution using  the maybe monad
+
+```javascript
+const getCountry = (student) => student
+                                    .map(R.prop('school'))
+                                    .map(R.prop('address'))
+                                    .map(R.prop('country'))
+                                        .getOrElse('Country does not exist!');
+```
+
+The either monad is usd when you want to deal with the 
+
+
+```javascript
+
+class Either 
+{
+    constructor(value) {
+        this._value = value;
+    }
+
+    get value() {
+        return this._value;
+    }
+    static left(a) {
+        return new Left(a);
+    }
+
+    static right(a) {
+        return new Right(a);
+    }
+
+    static fromNullable(val) {
+        return val !== null ? right(val): left(val);
+    }
+
+    static of(a){
+        return right(a);
+    }
+}
+
+
+class Left extends Either {
+
+    map(_) {
+        return this;
+    }
+
+    get value() {
+        throw new TypeError('Cant extract the value of a Left(a).');
+    }
+
+    getOrElse(other) {
+        return other;
+    }
+
+    orElse(f) {
+        return f(this.value);
+    }
+
+    chain(f) {
+        return this;
+    }
+
+    getOrElseThrow(a) {
+        throw new Error(a);
+    }
+
+    filter(f) {
+        return this;
+    }
+    
+    toString() {
+        return `Either.Left(${this.value})`;
+    }
+}
+
+class Right extends Either {
+    map(f) {
+        return Either.of(f(this.value));
+    }
+
+    getOrElse(other) {
+        return this.value;
+    }
+
+    orElse() {
+        return this;
+    }
+
+    chain(f) {
+        return f(this.value);
+    }
+
+    getOrElseThrow(_) {
+        return this.value;
+    }
+
+    filter(f) {
+        return Either.fromNullable(f(this.value) ? this.value : null);
+    }
+
+    toString() {
+        return `Either.Right(${this.value})`;
+    }
+}
+```
+Examples using the Either monad
+
+```javascript
+const findStudent = safeFindObject(DB('student'));
+findStudent('444-44-4444').getOrElse(new Student());
+```
+
+IO monad is for handling functions that have side effects in funtional manner.
+
+
+```javascript
+    class IO {
+        constructor(effect) {
+            if (!_.isFunction(effect)) {
+                throw 'IO Usage: function required';
+            }
+            this.effect = effect;
+        }
+
+        static of(a) {
+            return new IO(() => a);
+        }
+
+        static from(fn) {
+            return new IO(fn);
+        }
+
+        map(fn) {
+            var self = this;
+            return new IO(function () {
+                return fn(self.effect());
+            });
+        }
+
+        chain(fn) {
+            return fn(this.effect());
+        }
+
+        run() {
+            return this.effect();
+        }
+
+
+    }
+```
+
+A common pattern that occurs with IO is to tuck the impure operation toward the end of the composition. This lets you build programs one step at a time, perform all the necessary business logic, and finally deliver the data on a silver platter for the IO monad to finish the job, declaratively and side effect–free.
